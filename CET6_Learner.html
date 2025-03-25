@@ -5,28 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>六级高频词汇记忆助手</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
         :root {
-            --primary-color: #4a6fa5;
-            --secondary-color: #166088;
-            --accent-color: #4fc3f7;
-            --background-color: #f5f7fa;
-            --card-color: #ffffff;
-            --text-color: #333333;
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --accent-color: #4cc9f0;
+            --background-color: #f8f9fa;
+            --card-color: rgba(255, 255, 255, 0.9);
+            --text-color: #2b2d42;
             --correct-color: #4caf50;
             --wrong-color: #f44336;
+            --glass-effect: blur(10px);
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--background-color);
             color: var(--text-color);
             margin: 0;
             padding: 0;
             line-height: 1.6;
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(67, 97, 238, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(76, 201, 240, 0.1) 0%, transparent 20%),
+                linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -34,59 +43,101 @@
         header {
             text-align: center;
             margin-bottom: 30px;
-            background-color: var(--primary-color);
+            background-color: rgba(67, 97, 238, 0.9);
             color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2);
+            backdrop-filter: var(--glass-effect);
+            -webkit-backdrop-filter: var(--glass-effect);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 60%);
+            transform: rotate(30deg);
+            z-index: -1;
         }
 
         h1 {
             margin: 0;
-            font-size: 2.2em;
+            font-size: 2.5em;
+            font-weight: 600;
+            letter-spacing: -0.5px;
         }
 
         .subtitle {
-            font-size: 1.1em;
+            font-size: 1.2em;
             opacity: 0.9;
             margin-top: 10px;
+            font-weight: 300;
         }
 
         .game-area {
             background-color: var(--card-color);
-            border-radius: 8px;
-            padding: 25px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+            margin-bottom: 25px;
+            backdrop-filter: var(--glass-effect);
+            -webkit-backdrop-filter: var(--glass-effect);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-area::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #4361ee, #4cc9f0);
         }
 
         .word-display {
-            font-size: 2.5em;
+            font-size: 3em;
             text-align: center;
-            margin: 20px 0;
+            margin: 30px 0;
             color: var(--secondary-color);
-            min-height: 60px;
+            min-height: 80px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .meaning-display {
-            font-size: 1.3em;
+            font-size: 1.5em;
             text-align: center;
-            margin: 20px 0;
+            margin: 25px 0;
             min-height: 60px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: var(--secondary-color);
+            font-weight: 500;
+            padding: 15px;
+            background-color: rgba(67, 97, 238, 0.1);
+            border-radius: 12px;
+            border-left: 4px solid var(--primary-color);
         }
 
         .options {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin: 30px 0;
+            gap: 20px;
+            margin: 35px 0;
         }
 
         @media (max-width: 600px) {
@@ -99,18 +150,38 @@
             background-color: var(--primary-color);
             color: white;
             border: none;
-            padding: 12px 20px;
-            border-radius: 6px;
-            font-size: 1em;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-size: 1.1em;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(255,255,255,0.2), rgba(255,255,255,0));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        button:hover::after {
+            opacity: 1;
         }
 
         button:hover {
             background-color: var(--secondary-color);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
 
         button:active {
@@ -127,11 +198,13 @@
             background-color: var(--card-color);
             color: var(--text-color);
             border: 2px solid var(--primary-color);
+            transition: all 0.3s, transform 0.2s;
         }
 
         .option-btn:hover {
             background-color: var(--primary-color);
             color: white;
+            transform: translateY(-3px) scale(1.02);
         }
 
         .correct {
@@ -149,48 +222,99 @@
         .controls {
             display: flex;
             justify-content: space-between;
-            margin-top: 20px;
+            margin-top: 25px;
+            gap: 15px;
+        }
+
+        .controls button {
+            flex: 1;
         }
 
         .stats {
             display: flex;
             justify-content: space-around;
             background-color: var(--card-color);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            backdrop-filter: var(--glass-effect);
+            -webkit-backdrop-filter: var(--glass-effect);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
         .stat-item {
             text-align: center;
+            padding: 0 15px;
+            position: relative;
+        }
+
+        .stat-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 50%;
+            width: 1px;
+            background-color: rgba(0,0,0,0.1);
         }
 
         .stat-value {
-            font-size: 1.8em;
+            font-size: 2em;
             font-weight: bold;
             color: var(--primary-color);
+            margin-bottom: 5px;
         }
 
         .stat-label {
-            font-size: 0.9em;
+            font-size: 1em;
             opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
         }
 
         .progress-container {
             width: 100%;
-            background-color: #e0e0e0;
-            border-radius: 10px;
-            margin: 20px 0;
-            height: 10px;
+            background-color: rgba(0,0,0,0.05);
+            border-radius: 12px;
+            margin: 25px 0;
+            height: 12px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .progress-bar {
             height: 100%;
-            border-radius: 10px;
-            background-color: var(--primary-color);
+            border-radius: 12px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
             width: 0%;
-            transition: width 0.3s ease;
+            transition: width 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0.1) 0%,
+                rgba(255, 255, 255, 0.5) 50%,
+                rgba(255, 255, 255, 0.1) 100%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
         }
 
         .hidden {
@@ -200,56 +324,90 @@
         .example-sentence {
             font-style: italic;
             color: #666;
-            margin: 15px 0;
-            padding: 10px;
-            background-color: #f0f4f8;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: rgba(240, 244, 248, 0.7);
             border-left: 4px solid var(--accent-color);
+            border-radius: 8px;
+            font-size: 1.1em;
+            line-height: 1.6;
         }
 
         .pronunciation {
             text-align: center;
-            margin: 10px 0;
+            margin: 15px 0;
             color: var(--secondary-color);
-            font-size: 1.1em;
+            font-size: 1.3em;
+            font-weight: 500;
+            background-color: rgba(67, 97, 238, 0.1);
+            padding: 8px 15px;
+            border-radius: 20px;
+            display: inline-block;
         }
 
         .difficulty-buttons {
             display: flex;
             justify-content: center;
-            gap: 10px;
-            margin: 20px 0;
+            gap: 12px;
+            margin: 25px 0;
+            flex-wrap: wrap;
         }
 
         .difficulty-btn {
-            padding: 8px 15px;
-            font-size: 0.9em;
+            padding: 10px 18px;
+            font-size: 0.95em;
+            border-radius: 12px;
         }
 
         .active-difficulty {
             background-color: var(--secondary-color);
-            font-weight: bold;
+            font-weight: 600;
+            box-shadow: 0 4px 8px rgba(58, 12, 163, 0.3);
         }
 
         .tabs {
             display: flex;
             margin-bottom: 20px;
+            background-color: var(--card-color);
+            border-radius: 12px;
+            padding: 5px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            backdrop-filter: var(--glass-effect);
+            -webkit-backdrop-filter: var(--glass-effect);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
         .tab {
-            padding: 10px 20px;
-            background-color: #e0e0e0;
+            padding: 12px 24px;
+            background-color: transparent;
             cursor: pointer;
-            border-radius: 5px 5px 0 0;
+            border-radius: 8px;
             margin-right: 5px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            flex: 1;
+            text-align: center;
+        }
+
+        .tab:hover {
+            background-color: rgba(67, 97, 238, 0.1);
         }
 
         .tab.active {
             background-color: var(--primary-color);
             color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 8px rgba(67, 97, 238, 0.2);
         }
 
         .tab-content {
             display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .tab-content.active {
@@ -257,19 +415,29 @@
         }
 
         .review-list {
-            max-height: 300px;
+            max-height: 400px;
             overflow-y: auto;
             background-color: var(--card-color);
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            backdrop-filter: var(--glass-effect);
+            -webkit-backdrop-filter: var(--glass-effect);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
         .review-item {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
+            padding: 15px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s;
+        }
+
+        .review-item:hover {
+            background-color: rgba(67, 97, 238, 0.05);
+            border-radius: 8px;
         }
 
         .review-item:last-child {
@@ -277,105 +445,346 @@
         }
 
         .word-review {
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 1.1em;
+            color: var(--secondary-color);
         }
 
         .meaning-review {
             color: #666;
+            font-size: 0.95em;
+            text-align: right;
+            flex: 1;
+            margin-left: 20px;
         }
 
         .timer {
             text-align: center;
-            font-size: 1.2em;
-            margin: 10px 0;
+            font-size: 1.3em;
+            margin: 15px 0;
             color: var(--secondary-color);
+            font-weight: 500;
+            background-color: rgba(67, 97, 238, 0.1);
+            padding: 8px 15px;
+            border-radius: 20px;
+            display: inline-block;
         }
 
         .settings {
             background-color: var(--card-color);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 25px;
+            backdrop-filter: var(--glass-effect);
+            -webkit-backdrop-filter: var(--glass-effect);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
         .setting-item {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         .setting-item label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--secondary-color);
         }
 
         .setting-item select, .setting-item input {
             width: 100%;
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
+            padding: 12px 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.1);
+            background-color: rgba(255,255,255,0.7);
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .setting-item select:focus, .setting-item input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
         }
 
         .word-import {
             background-color: var(--card-color);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 25px;
+            backdrop-filter: var(--glass-effect);
+            -webkit-backdrop-filter: var(--glass-effect);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
         .word-textarea {
             width: 100%;
-            height: 200px;
-            padding: 10px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-            font-family: monospace;
-            margin-bottom: 10px;
+            height: 250px;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.1);
+            font-family: 'Consolas', monospace;
+            margin-bottom: 15px;
+            background-color: rgba(255,255,255,0.7);
+            transition: all 0.3s;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        .word-textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
         }
 
         .dark-mode {
-            --primary-color: #3a5683;
-            --secondary-color: #0d4b6e;
-            --accent-color: #2d9cdb;
-            --background-color: #1a1a1a;
-            --card-color: #2d2d2d;
-            --text-color: #f0f0f0;
+            --primary-color: #5e60ce;
+            --secondary-color: #6930c3;
+            --accent-color: #5390d9;
+            --background-color: #121212;
+            --card-color: rgba(30, 30, 30, 0.9);
+            --text-color: #e0e0e0;
+            --glass-effect: blur(12px);
+        }
+
+        .dark-mode body {
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(94, 96, 206, 0.15) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(83, 144, 217, 0.15) 0%, transparent 20%),
+                linear-gradient(135deg, #121212 0%, #1e1e1e 100%);
+        }
+
+        .dark-mode .word-textarea,
+        .dark-mode .setting-item select,
+        .dark-mode .setting-item input {
+            background-color: rgba(40, 40, 40, 0.7);
+            color: #e0e0e0;
+            border-color: rgba(255,255,255,0.1);
+        }
+
+        .dark-mode .example-sentence {
+            background-color: rgba(40, 40, 40, 0.7);
+            color: #b0b0b0;
+        }
+
+        .dark-mode .stat-item:not(:last-child)::after {
+            background-color: rgba(255,255,255,0.1);
         }
 
         .theme-toggle {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            bottom: 25px;
+            right: 25px;
             background-color: var(--primary-color);
             color: white;
             border: none;
-            width: 50px;
-            height: 50px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
-            font-size: 1.5em;
+            font-size: 1.8em;
             cursor: pointer;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1) rotate(30deg);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
         }
 
         .confetti {
             position: fixed;
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             background-color: #f00;
             border-radius: 50%;
             pointer-events: none;
+            z-index: 999;
+        }
+
+        .builtin-words-btn {
+            margin-top: 15px;
+            background-color: #7209b7;
+            transition: all 0.3s;
+        }
+
+        .builtin-words-btn:hover {
+            background-color: #5a189a;
+            transform: translateY(-3px);
+        }
+
+        .import-btn {
+            background-color: #4361ee;
+        }
+
+        .import-result {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: rgba(67, 97, 238, 0.1);
+            border-radius: 12px;
+            color: var(--secondary-color);
+            font-weight: 500;
+        }
+
+        /* 浮动气泡背景 */
+        .bubbles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bubble {
+            position: absolute;
+            bottom: -100px;
+            background: rgba(67, 97, 238, 0.1);
+            border-radius: 50%;
+            opacity: 0.5;
+            animation: rise 15s infinite ease-in;
+        }
+
+        .bubble:nth-child(1) {
+            width: 40px;
+            height: 40px;
+            left: 10%;
+            animation-duration: 8s;
+        }
+
+        .bubble:nth-child(2) {
+            width: 20px;
+            height: 20px;
+            left: 20%;
+            animation-duration: 5s;
+            animation-delay: 1s;
+        }
+
+        .bubble:nth-child(3) {
+            width: 50px;
+            height: 50px;
+            left: 35%;
+            animation-duration: 7s;
+            animation-delay: 2s;
+        }
+
+        .bubble:nth-child(4) {
+            width: 80px;
+            height: 80px;
+            left: 50%;
+            animation-duration: 11s;
+            animation-delay: 0s;
+        }
+
+        .bubble:nth-child(5) {
+            width: 35px;
+            height: 35px;
+            left: 55%;
+            animation-duration: 6s;
+            animation-delay: 1s;
+        }
+
+        .bubble:nth-child(6) {
+            width: 45px;
+            height: 45px;
+            left: 65%;
+            animation-duration: 8s;
+            animation-delay: 3s;
+        }
+
+        .bubble:nth-child(7) {
+            width: 25px;
+            height: 25px;
+            left: 75%;
+            animation-duration: 7s;
+            animation-delay: 2s;
+        }
+
+        .bubble:nth-child(8) {
+            width: 80px;
+            height: 80px;
+            left: 80%;
+            animation-duration: 6s;
+            animation-delay: 1s;
+        }
+
+        @keyframes rise {
+            0% {
+                bottom: -100px;
+                transform: translateX(0);
+            }
+            50% {
+                transform: translateX(100px);
+            }
+            100% {
+                bottom: 1080px;
+                transform: translateX(-200px);
+            }
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            header {
+                padding: 20px 15px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .word-display {
+                font-size: 2.5em;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .stats {
+                flex-wrap: wrap;
+            }
+
+            .stat-item {
+                width: 50%;
+                margin-bottom: 15px;
+            }
+
+            .stat-item:not(:last-child)::after {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- 浮动气泡背景 -->
+    <div class="bubbles">
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+    </div>
+
     <div class="container">
         <header>
             <h1>六级高频词汇记忆助手</h1>
-            <div class="subtitle">有趣高效地记忆CET-6高频词汇</div>
+            <div class="subtitle">现代化设计 · 高效记忆 · 开箱即用</div>
         </header>
 
         <div class="stats">
@@ -402,27 +811,13 @@
         </div>
 
         <div class="tabs">
-            <div class="tab active" data-tab="import">导入单词</div>
-            <div class="tab" data-tab="game">记忆游戏</div>
+            <div class="tab active" data-tab="game">记忆游戏</div>
+            <div class="tab" data-tab="import">导入单词</div>
             <div class="tab" data-tab="review">复习列表</div>
             <div class="tab" data-tab="settings">设置</div>
         </div>
 
-        <div class="tab-content active" id="import-tab">
-            <div class="word-import">
-                <h2>导入单词表</h2>
-                <p>请按照以下格式输入单词（每行一个单词）：</p>
-                <p><em>1. alter v. 改变，改动，变更<br>
-                2. burst vi. n. 突然发生，爆裂<br>
-                3. dispose vi. 除掉；处置；解决；处理(of)</em></p>
-
-                <textarea class="word-textarea" id="word-textarea" placeholder="请输入单词列表..."></textarea>
-                <button id="import-btn">导入单词</button>
-                <div id="import-result" class="hidden" style="margin-top: 10px; padding: 10px; background-color: #f0f4f8; border-radius: 4px;"></div>
-            </div>
-        </div>
-
-        <div class="tab-content" id="game-tab">
+        <div class="tab-content active" id="game-tab">
             <div class="difficulty-buttons">
                 <button class="difficulty-btn active-difficulty" data-difficulty="all">全部词汇</button>
                 <button class="difficulty-btn" data-difficulty="easy">简单</button>
@@ -432,7 +827,7 @@
 
             <div class="game-area">
                 <div class="timer" id="timer">时间: 0秒</div>
-                <div class="word-display" id="word-display">请先导入单词</div>
+                <div class="word-display" id="word-display">准备开始</div>
                 <div class="pronunciation hidden" id="pronunciation"></div>
                 <div class="meaning-display hidden" id="meaning-display"></div>
                 <div class="example-sentence hidden" id="example-sentence"></div>
@@ -445,6 +840,21 @@
                     <button id="show-answer-btn">显示答案</button>
                     <button id="next-word-btn">下一个单词</button>
                 </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="import-tab">
+            <div class="word-import">
+                <h2>导入单词表</h2>
+                <p>请按照以下格式输入单词（每行一个单词）：</p>
+                <p><em>1. alter v. 改变，改动，变更<br>
+                2. burst vi. n. 突然发生，爆裂<br>
+                3. dispose vi. 除掉；处置；解决；处理(of)</em></p>
+
+                <textarea class="word-textarea" id="word-textarea" placeholder="请输入单词列表..."></textarea>
+                <button id="import-btn" class="import-btn">导入单词</button>
+                <button id="load-builtin-btn" class="builtin-words-btn">加载内置词汇</button>
+                <div id="import-result" class="import-result hidden"></div>
             </div>
         </div>
 
@@ -506,29 +916,8 @@
         let currentDifficulty = "all";
         let isDarkMode = false;
 
-        // DOM元素
-        const wordDisplay = document.getElementById('word-display');
-        const meaningDisplay = document.getElementById('meaning-display');
-        const pronunciationDisplay = document.getElementById('pronunciation');
-        const exampleSentenceDisplay = document.getElementById('example-sentence');
-        const optionsContainer = document.getElementById('options');
-        const showAnswerBtn = document.getElementById('show-answer-btn');
-        const nextWordBtn = document.getElementById('next-word-btn');
-        const correctCountDisplay = document.getElementById('correct-count');
-        const wrongCountDisplay = document.getElementById('wrong-count');
-        const streakCountDisplay = document.getElementById('streak-count');
-        const progressPercentDisplay = document.getElementById('progress-percent');
-        const progressBar = document.getElementById('progress-bar');
-        const timerDisplay = document.getElementById('timer');
-        const reviewList = document.getElementById('review-list');
-        const wordTextarea = document.getElementById('word-textarea');
-        const importBtn = document.getElementById('import-btn');
-        const importResult = document.getElementById('import-result');
-        const themeToggle = document.getElementById('theme-toggle');
-
-        // 示例单词数据（如果用户不导入，使用这个）
-        const exampleWordList = `
-1. alter v. 改变，改动，变更
+        // 内置CET-6高频词汇库
+        const builtInWords = `1. alter v. 改变，改动，变更
 2. burst vi. n. 突然发生，爆裂
 3. dispose vi. 除掉；处置；解决；处理(of)
 4. blast n. 爆炸；气流 vi. 炸，炸掉
@@ -1111,12 +1500,34 @@ lish vt .完成，到达；实行
 584. origin n.起源
 `;
 
+        // DOM元素
+        const wordDisplay = document.getElementById('word-display');
+        const meaningDisplay = document.getElementById('meaning-display');
+        const pronunciationDisplay = document.getElementById('pronunciation');
+        const exampleSentenceDisplay = document.getElementById('example-sentence');
+        const optionsContainer = document.getElementById('options');
+        const showAnswerBtn = document.getElementById('show-answer-btn');
+        const nextWordBtn = document.getElementById('next-word-btn');
+        const correctCountDisplay = document.getElementById('correct-count');
+        const wrongCountDisplay = document.getElementById('wrong-count');
+        const streakCountDisplay = document.getElementById('streak-count');
+        const progressPercentDisplay = document.getElementById('progress-percent');
+        const progressBar = document.getElementById('progress-bar');
+        const timerDisplay = document.getElementById('timer');
+        const reviewList = document.getElementById('review-list');
+        const wordTextarea = document.getElementById('word-textarea');
+        const importBtn = document.getElementById('import-btn');
+        const loadBuiltinBtn = document.getElementById('load-builtin-btn');
+        const importResult = document.getElementById('import-result');
+        const themeToggle = document.getElementById('theme-toggle');
+
         // 初始化
         function init() {
             // 设置事件监听器
             showAnswerBtn.addEventListener('click', showAnswer);
             nextWordBtn.addEventListener('click', nextWord);
             importBtn.addEventListener('click', importWords);
+            loadBuiltinBtn.addEventListener('click', loadBuiltinWords);
             themeToggle.addEventListener('click', toggleTheme);
 
             // 设置标签切换
@@ -1141,9 +1552,6 @@ lish vt .完成，到达；实行
                 });
             });
 
-            // 设置文本区域示例
-            wordTextarea.placeholder = exampleWordList;
-
             // 初始化设置
             document.getElementById('mode-select').addEventListener('change', updateSettings);
             document.getElementById('timer-toggle').addEventListener('change', updateSettings);
@@ -1152,6 +1560,21 @@ lish vt .完成，到达；实行
 
             // 尝试从本地存储加载数据
             loadFromLocalStorage();
+
+            // 如果没有单词数据，自动加载内置词汇
+            if (wordList.length === 0) {
+                loadBuiltinWords();
+            } else {
+                nextWord();
+            }
+        }
+
+        // 加载内置词汇
+        function loadBuiltinWords() {
+            wordTextarea.value = builtInWords;
+            importWords();
+            importResult.textContent = "已加载内置CET-6高频词汇";
+            importResult.classList.remove('hidden');
         }
 
         // 解析单词文本
@@ -1495,10 +1918,6 @@ lish vt .完成，到达；实行
 
                 updateStats();
                 updateProgress();
-
-                if (wordList.length > 0) {
-                    nextWord();
-                }
             } catch (e) {
                 console.error("加载保存的数据失败:", e);
             }
