@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>参数化检索增强生成 | 清华大学研究</title>
+    <meta name="description" content="一种新的RAG范式，将外部知识直接注入LLM的前馈网络参数中">
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        },
+                        dark: {
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace'],
+                    },
+                }
+            },
+            darkMode: 'class',
+        }
+    </script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- 替换为UNPKG国内镜像 -->
+<!--    <link rel="stylesheet" href="https://unpkg.zhimg.com/@preline/overlay@1.0.0/dist/overlay.min.css">-->
+<!--    <script src="https://unpkg.zhimg.com/@preline/overlay@1.0.0/dist/overlay.min.js"></script>-->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .btn-hover {
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        .btn-hover:hover {
+            transform: scale(1.02);
+        }
+
+        .highlight-box {
+            position: relative;
+        }
+
+        .highlight-box::before {
+            content: '';
+            position: absolute;
+            left: -4px;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background-color: #0ea5e9;
+            border-radius: 4px 0 0 4px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-dark-900 dark:text-gray-200">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white/80 dark:bg-dark-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-brain text-primary-600 dark:text-primary-400 text-2xl"></i>
+                <h1 class="text-xl font-bold text-gray-900 dark:text-white">参数化RAG</h1>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+                    <i class="fas fa-moon dark:hidden"></i>
+                    <i class="fas fa-sun hidden dark:block"></i>
+                </button>
+
+                <nav class="hidden md:flex space-x-6">
+                    <a href="#overview" class="font-medium hover:text-primary-600 dark:hover:text-primary-400 transition">概述</a>
+                    <a href="#methodology" class="font-medium hover:text-primary-600 dark:hover:text-primary-400 transition">方法</a>
+                    <a href="#results" class="font-medium hover:text-primary-600 dark:hover:text-primary-400 transition">结果</a>
+                    <a href="#conclusion" class="font-medium hover:text-primary-600 dark:hover:text-primary-400 transition">结论</a>
+                </nav>
+
+                <button class="md:hidden p-2" id="mobile-menu-button">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white dark:bg-dark-800 border-t border-gray-200 dark:border-gray-700">
+            <div class="container mx-auto px-4 py-2 flex flex-col space-y-2">
+                <a href="#overview" class="py-2 font-medium hover:text-primary-600 dark:hover:text-primary-400 transition">概述</a>
+                <a href="#methodology" class="py-2 font-medium hover:text-primary-600 dark:hover:text-primary-400 transition">方法</a>
+                <a href="#results" class="py-2 font-medium hover:text-primary-600 dark:hover:text-primary-400 transition">结果</a>
+                <a href="#conclusion" class="py-2 font-medium hover:text-primary-600 dark:hover:text-primary-400 transition">结论</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="relative bg-gradient-to-br from-primary-50 to-primary-100 dark:from-dark-800 dark:to-dark-900 py-16 md:py-24">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto text-center fade-in">
+                <h1 class="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
+                    参数化检索增强生成
+                </h1>
+                <p class="text-xl text-gray-600 dark:text-gray-300 mb-8">
+                    一种将外部知识直接注入大语言模型参数的新范式
+                </p>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <a href="#overview" class="btn-hover px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg shadow-md transition">
+                        探索研究 <i class="fas fa-arrow-down ml-2"></i>
+                    </a>
+                    <a href="https://github.com/oneal2000/PRAG" target="_blank" class="btn-hover px-6 py-3 bg-white hover:bg-gray-100 dark:bg-dark-700 dark:hover:bg-dark-600 text-gray-800 dark:text-white font-medium rounded-lg shadow-md transition">
+                        <i class="fab fa-github mr-2"></i> GitHub代码
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Authors -->
+    <section class="py-8 bg-white dark:bg-dark-800">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto">
+                <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-4 text-center">研究团队</h2>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <div class="text-center">
+                        <p class="font-medium">苏伟航</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">清华大学</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-medium">汤一辰*</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">清华大学</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-medium">艾庆华†</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">清华大学</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-medium">严俊熙</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">清华大学</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-medium">王长月</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">清华大学</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-medium">王宏宁</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">清华大学</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-medium">叶子怡</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">清华大学</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-medium">周宇佳</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">清华大学</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-medium">刘奕群</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">清华大学</p>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-4 text-center">*同等贡献 †通讯作者</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Overview Section -->
+    <section id="overview" class="py-16 bg-gray-50 dark:bg-dark-900">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto fade-in">
+                <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center">研究概述</h2>
+
+                <div class="bg-white dark:bg-dark-800 rounded-xl shadow-md p-6 mb-8 card-hover">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">摘要</h3>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                        检索增强生成(RAG)技术已成为提升大语言模型(LLM)可靠性的有前景解决方案，能够解决幻觉、知识过时和领域适应等问题。现有的RAG方法将相关文档附加到LLM的输入上下文中，我们称之为上下文知识注入方法。
+                    </p>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                        虽然这种方法简单且通常有效，但它存在固有局限性。首先，增加上下文长度和相关文档数量会导致更高的计算开销和性能下降，特别是在复杂推理任务中。更重要的是，上下文知识注入主要在输入级别操作，但LLM将其内部知识存储在参数中。
+                    </p>
+                    <p class="text-gray-600 dark:text-gray-300">
+                        为此，我们提出了<strong class="text-primary-600 dark:text-primary-400">参数化检索增强生成(Parametric RAG)</strong>，这是一种新的RAG范式，通过文档参数化将外部知识直接集成到LLM的前馈网络(FFN)参数中。这种方法不仅通过消除向LLM输入上下文中注入多个文档的需求来节省在线计算成本，还加深了外部知识与LLM参数知识空间的整合。
+                    </p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-white dark:bg-dark-800 rounded-xl shadow-md p-6 card-hover">
+                        <div class="flex items-center mb-4">
+                            <div class="p-3 rounded-full bg-primary-100 dark:bg-primary-900/50 mr-4">
+                                <i class="fas fa-bolt text-primary-600 dark:text-primary-400"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">效率提升</h3>
+                        </div>
+                        <p class="text-gray-600 dark:text-gray-300">
+                            相比传统RAG方法，参数化RAG减少了29%-36%的推理时间，显著降低了计算开销。
+                        </p>
+                    </div>
+
+                    <div class="bg-white dark:bg-dark-800 rounded-xl shadow-md p-6 card-hover">
+                        <div class="flex items-center mb-4">
+                            <div class="p-3 rounded-full bg-secondary-100 dark:bg-secondary-900/50 mr-4">
+                                <i class="fas fa-chart-line text-secondary-600 dark:text-secondary-400"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">性能优势</h3>
+                        </div>
+                        <p class="text-gray-600 dark:text-gray-300">
+                            在多个RAG基准测试中，参数化RAG在涉及复杂推理的任务上优于最先进的上下文方法。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem & Solution -->
+    <section class="py-16 bg-white dark:bg-dark-800">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto fade-in">
+                <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center">问题与创新</h2>
+
+                <div class="grid md:grid-cols-2 gap-8 mb-12">
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                            <span class="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 flex items-center justify-center mr-3">1</span>
+                            现有RAG的局限性
+                        </h3>
+                        <ul class="space-y-3 text-gray-600 dark:text-gray-300">
+                            <li class="flex items-start">
+                                <i class="fas fa-exclamation-circle text-red-500 mt-1 mr-2"></i>
+                                <span>上下文长度增加导致计算开销增大</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-exclamation-circle text-red-500 mt-1 mr-2"></i>
+                                <span>复杂推理任务中性能下降</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-exclamation-circle text-red-500 mt-1 mr-2"></i>
+                                <span>知识注入仅影响注意力网络的KV对，而非模型存储参数</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                            <span class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400 flex items-center justify-center mr-3">2</span>
+                            我们的解决方案
+                        </h3>
+                        <ul class="space-y-3 text-gray-600 dark:text-gray-300">
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                <span>将外部知识直接注入LLM的前馈网络参数</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                <span>离线预处理阶段将文档参数化</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                <span>检索-更新-生成(RUG)工作流程</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 dark:bg-dark-700 rounded-xl p-6 highlight-box">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">核心贡献</h3>
+                    <ul class="space-y-3 text-gray-600 dark:text-gray-300">
+                        <li class="flex items-start">
+                            <i class="fas fa-star text-yellow-500 mt-1 mr-2"></i>
+                            <span>提出参数化RAG，一种将外部知识直接集成到LLM参数中的新RAG范式</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-star text-yellow-500 mt-1 mr-2"></i>
+                            <span>提出构建参数化文档表示的离线方法和检索-更新-生成流程</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-star text-yellow-500 mt-1 mr-2"></i>
+                            <span>通过大量实验证明参数化RAG在效果和效率上的潜力</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Methodology Section -->
+    <section id="methodology" class="py-16 bg-gray-50 dark:bg-dark-900">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto fade-in">
+                <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center">研究方法</h2>
+
+                <div class="bg-white dark:bg-dark-800 rounded-xl shadow-md p-6 mb-8 card-hover">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">参数化RAG框架</h3>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                        参数化RAG框架设计有两个阶段：离线文档参数化阶段和带有检索-更新-生成工作流程的在线推理阶段。
+                    </p>
+
+                    <div class="grid md:grid-cols-3 gap-4 my-6">
+                        <div class="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-4 text-center">
+                            <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-primary-100 dark:bg-primary-800 flex items-center justify-center">
+                                <i class="fas fa-search text-primary-600 dark:text-primary-400"></i>
+                            </div>
+                            <h4 class="font-medium text-gray-900 dark:text-white">检索</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">从外部语料库中检索相关文档</p>
+                        </div>
+
+                        <div class="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-4 text-center">
+                            <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-primary-100 dark:bg-primary-800 flex items-center justify-center">
+                                <i class="fas fa-sync-alt text-primary-600 dark:text-primary-400"></i>
+                            </div>
+                            <h4 class="font-medium text-gray-900 dark:text-white">更新</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">用检索到的文档更新LLM参数</p>
+                        </div>
+
+                        <div class="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-4 text-center">
+                            <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-primary-100 dark:bg-primary-800 flex items-center justify-center">
+                                <i class="fas fa-robot text-primary-600 dark:text-primary-400"></i>
+                            </div>
+                            <h4 class="font-medium text-gray-900 dark:text-white">生成</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">使用更新后的LLM生成响应</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white dark:bg-dark-800 rounded-xl shadow-md p-6 card-hover">
+                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">离线文档参数化</h3>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">
+                            我们将每个文档转换为参数化表示，形成参数化语料库K<sub>P</sub>:
+                        </p>
+                        <div class="bg-gray-50 dark:bg-dark-700 p-4 rounded-lg mb-4 font-mono text-sm">
+                            K<sub>P</sub> = {p<sub>i</sub> | p<sub>i</sub> = f<sub>φ</sub>(d<sub>i</sub>), i=1,2,...,N}
+                        </div>
+                        <p class="text-gray-600 dark:text-gray-300">
+                            其中f<sub>φ</sub>是将文档d<sub>i</sub>转换为其对应参数表示p<sub>i</sub>的映射函数。
+                        </p>
+                    </div>
+
+                    <div class="bg-white dark:bg-dark-800 rounded-xl shadow-md p-6 card-hover">
+                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">在线推理流程</h3>
+                        <ol class="space-y-3 text-gray-600 dark:text-gray-300">
+                            <li class="flex items-start">
+                                <span class="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-3">1</span>
+                                <span>使用检索器R计算每个文档与查询的相关性分数</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-3">2</span>
+                                <span>合并检索到的文档的低秩矩阵形成单一插件模块</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-3">3</span>
+                                <span>使用标准自左向右解码过程生成最终响应</span>
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-dark-800 rounded-xl shadow-md p-6 card-hover">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">文档增强过程</h3>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                        为了构建鲁棒且信息丰富的文档参数化表示，我们提出了两步方法：文档重写和QA对生成。
+                    </p>
+
+                    <div class="grid md:grid-cols-2 gap-4 mt-6">
+                        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                            <h4 class="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                                <i class="fas fa-edit text-blue-500 mr-2"></i>
+                                文档重写
+                            </h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">
+                                使用不同的措辞、风格或组织结构多次重写文档内容，保留原始事实但改变语言表达。
+                            </p>
+                        </div>
+
+                        <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
+                            <h4 class="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                                <i class="fas fa-question-circle text-purple-500 mr-2"></i>
+                                QA对生成
+                            </h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">
+                                基于原始文档生成问题-答案对，使模型能够在下游任务中有效应用知识。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results Section -->
+    <section id="results" class="py-16 bg-white dark:bg-dark-800">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto fade-in">
+                <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center">实验结果</h2>
+
+                <div class="bg-white dark:bg-dark-700 rounded-xl shadow-md p-6 mb-8 card-hover">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">基准数据集</h3>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                        我们在多个基准数据集上评估了我们的方法，每个数据集设计用于评估不同的推理能力：
+                    </p>
+
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                            <h4 class="font-medium text-gray-900 dark:text-white mb-2">2WikiMultihopQA (2WQA)</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">
+                                测试模型通过整合多个维基百科段落的信息进行多跳推理的能力。
+                            </p>
+                        </div>
+
+                        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                            <h4 class="font-medium text-gray-900 dark:text-white mb-2">HotpotQA (HQA)</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">
+                                评估多跳推理技能，要求模型结合不同上下文的信息来解决单个查询。
+                            </p>
+                        </div>
+
+                        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                            <h4 class="font-medium text-gray-900 dark:text-white mb-2">PopQA (PQA)</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">
+                                评估事实问答，挑战模型回忆准确知识并解决实体表示中的歧义。
+                            </p>
+                        </div>
+
+                        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                            <h4 class="font-medium text-gray-900 dark:text-white mb-2">ComplexWebQuestions (CWQ)</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">
+                                涉及回答多步骤、基于网络的问题，进一步测试模型检索和推理大规模网络内容的能力。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-dark-700 rounded-xl shadow-md p-6 mb-8 card-hover">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">主要实验结果</h3>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                        参数化RAG在大多数基准测试和评估的LLM中优于现有的RAG框架。这种趋势在Qwen-1.5B和LLaMA-8B上尤为明显。
+                    </p>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-dark-800">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">模型</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">2WQA</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">HQA</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">PQA</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">CWQ</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-dark-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                <tr>
+                                    <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">标准RAG</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">0.2520</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">0.2671</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">0.1839</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">0.3726</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">DA-RAG</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">0.2531</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">0.3691</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">0.2012</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">0.3691</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">FLARE</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">0.2234</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">0.3173</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">0.1301</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">0.3173</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">DRAGIN</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">0.2692</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">0.3900</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">0.1056</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">0.3900</td>
+                                </tr>
+                                <tr class="bg-primary-50/30 dark:bg-primary-900/20">
+                                    <td class="px-4 py-3 text-sm font-medium text-primary-700 dark:text-primary-400">P-RAG (Ours)</td>
+                                    <td class="px-4 py-3 text-sm text-primary-700 dark:text-primary-400">0.2764</td>
+                                    <td class="px-4 py-3 text-sm text-primary-700 dark:text-primary-400">0.3482</td>
+                                    <td class="px-4 py-3 text-sm text-primary-700 dark:text-primary-400">0.2205</td>
+                                    <td class="px-4 py-3 text-sm text-primary-700 dark:text-primary-400">0.3482</td>
+                                </tr>
+                                <tr class="bg-secondary-50/30 dark:bg-secondary-900/20">
+                                    <td class="px-4 py-3 text-sm font-medium text-secondary-700 dark:text-secondary-400">Combine Both</td>
+                                    <td class="px-4 py-3 text-sm text-secondary-700 dark:text-secondary-400">0.3237</td>
+                                    <td class="px-4 py-3 text-sm text-secondary-700 dark:text-secondary-400">0.4101</td>
+                                    <td class="px-4 py-3 text-sm text-secondary-700 dark:text-secondary-400">0.2961</td>
+                                    <td class="px-4 py-3 text-sm text-secondary-700 dark:text-secondary-400">0.4101</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-4">注：所有报告指标均为F1分数</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-white dark:bg-dark-700 rounded-xl shadow-md p-6 card-hover">
+                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">LoRA权重初始化影响</h3>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">
+                            我们比较了两种LoRA权重初始化策略：随机初始化和预热初始化。
+                        </p>
+                        <div class="h-64">
+                            <canvas id="loraChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-dark-700 rounded-xl shadow-md p-6 card-hover">
+                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">运行时分析</h3>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">
+                            参数化RAG相比标准RAG减少了29%-36%的推理时间。
+                        </p>
+                        <div class="h-64">
+                            <canvas id="runtimeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Conclusion Section -->
+    <section id="conclusion" class="py-16 bg-gray-50 dark:bg-dark-900">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto fade-in">
+                <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center">结论与未来方向</h2>
+
+                <div class="bg-white dark:bg-dark-800 rounded-xl shadow-md p-6 mb-8 card-hover">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">主要结论</h3>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                        本文介绍了参数化RAG，这是一个通过参数化外部文档来解决上下文知识增强局限性的新框架。参数化RAG将这些参数化文档直接注入模型，减少了上下文过载和在线计算成本，同时保持了强大的性能。
+                    </p>
+                    <p class="text-gray-600 dark:text-gray-300">
+                        我们在多个基准测试上的实验表明，参数化RAG在不同LLM上优于传统的检索增强生成方法。最终，参数化RAG为将外部知识集成到LLM中提供了一条更高效、可扩展的途径，为基于参数的知识增强的进一步创新铺平了道路。
+                    </p>
+                </div>
+
+                <div class="bg-white dark:bg-dark-800 rounded-xl shadow-md p-6 card-hover">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">未来研究方向</h3>
+                    <ul class="space-y-3 text-gray-600 dark:text-gray-300">
+                        <li class="flex items-start">
+                            <i class="fas fa-arrow-right text-primary-600 mt-1 mr-2"></i>
+                            <span><strong>计算和存储效率：</strong>当前的参数化过程计算密集，每个文档的参数化表示比纯文本大得多。未来工作可以探索更多方法来提高计算和存储效率，使参数化过程更具可扩展性。</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-arrow-right text-primary-600 mt-1 mr-2"></i>
+                            <span><strong>模型无关表示：</strong>参数化文档目前与特定LLM绑定，限制了它们在不同模型间的泛化能力。开发通用的、与模型无关的表示可以显著增强跨不同系统的灵活性和重用性。</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-arrow-right text-primary-600 mt-1 mr-2"></i>
+                            <span><strong>扩展应用：</strong>我们相信信息参数化的潜在应用可以扩展到RAG之外。例如，基于LLM的智能体可以从参数化智能体配置文件和配置中受益，这可以缓解上下文长度限制并提高在线计算效率。</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- References -->
+    <section class="py-12 bg-white dark:bg-dark-800">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">参考文献</h2>
+                <div class="bg-gray-50 dark:bg-dark-700 rounded-lg p-6">
+                    <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                        <li>Allen-Zhu, Z., & Li, Y. (2021). Physics of language models: Part 3.1, knowledge storage and extraction. In Forty-first International Conference on Machine Learning.</li>
+                        <li>Asai, A., Wu, Z., Wang, Y., Sil, A., & Hajishirzi, H. (2024). Self-RAG: Learning to retrieve, generate, and critique through self-reflection. In The Twelfth International Conference on Learning Representations.</li>
+                        <li>Baek, I., Chang, H., Kim, B., Lee, J., & Lee, H. (2024). Probing-RAG: Self-probing to guide language models in selective document retrieval. arXiv preprint arXiv:2410.13359.</li>
+                        <li>Borgeaud, S., Mensch, A., Hoffmann, J., Cai, T., Rutherford, E., Millican, K., ... & Sifre, L. (2022). Improving language models by retrieving from trillions of tokens. In International conference on machine learning (pp. 2206-2240).</li>
+                        <li>Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J. D., Dhariwal, P., ... & Amodei, D. (2020). Language models are few-shot learners. Advances in neural information processing systems, 33, 1877-1901.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-100 dark:bg-dark-800 py-8 border-t border-gray-200 dark:border-gray-700">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="mb-4 md:mb-0">
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-brain text-primary-600 dark:text-primary-400 text-xl"></i>
+                            <span class="font-semibold text-gray-900 dark:text-white">参数化RAG研究</span>
+                        </div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">清华大学计算机科学与技术系</p>
+                    </div>
+
+                    <div class="flex space-x-4">
+                        <a href="https://twitter.com/example" target="_blank" class="text-gray-500 hover:text-primary-600 dark:hover:text-primary-400 transition">
+                            <i class="fab fa-twitter text-xl"></i>
+                        </a>
+                        <a href="https://github.com/oneal2000/PRAG" target="_blank" class="text-gray-500 hover:text-primary-600 dark:hover:text-primary-400 transition">
+                            <i class="fab fa-github text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700 flex flex-col md:flex-row justify-between items-center">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4 md:mb-0">
+                        &copy; 2025 清华大学计算机科学与技术系. 保留所有权利。
+                    </p>
+
+                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                        <span>作者: [苏伟航, 汤一辰, 艾庆华, 严俊熙, 王长月, 王宏宁, 叶子怡, 周宇佳, 刘奕群]</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Back to top button -->
+    <button id="back-to-top" class="fixed bottom-8 right-8 p-3 bg-primary-600 text-white rounded-full shadow-lg hidden">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <script>
+
+        // Dark/light mode toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+
+        // Check for saved user preference or use system preference
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            html.classList.add(savedTheme);
+        } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            html.classList.add('dark');
+        }
+
+        themeToggle.addEventListener('click', () => {
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+
+        // Mobile menu toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Back to top button
+        const backToTopButton = document.getElementById('back-to-top');
+
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                backToTopButton.classList.remove('hidden');
+            } else {
+                backToTopButton.classList.add('hidden');
+            }
+        });
+
+        backToTopButton.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+
+                if (targetElement) {
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth'
+                    });
+
+                    // Close mobile menu if open
+                    if (!mobileMenu.classList.contains('hidden')) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                }
+            });
+        });
+
+        // Charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // LoRA Initialization Impact Chart
+            const loraCtx = document.getElementById('loraChart').getContext('2d');
+            const loraChart = new Chart(loraCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['2WQA', 'HQA', 'PQA', 'CWQ'],
+                    datasets: [
+                        {
+                            label: '随机初始化',
+                            data: [0.2764, 0.1999, 0.2205, 0.3482],
+                            backgroundColor: 'rgba(14, 165, 233, 0.7)',
+                            borderColor: 'rgba(14, 165, 233, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '预热初始化',
+                            data: [0.3546, 0.2456, 0.2035, 0.4263],
+                            backgroundColor: 'rgba(139, 92, 246, 0.7)',
+                            borderColor: 'rgba(139, 92, 246, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 0.5,
+                            ticks: {
+                                color: '#6b7280'
+                            },
+                            grid: {
+                                color: 'rgba(229, 231, 235, 0.5)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#6b7280'
+                            },
+                            grid: {
+                                color: 'rgba(229, 231, 235, 0.5)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#6b7280'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Runtime Analysis Chart
+            const runtimeCtx = document.getElementById('runtimeChart').getContext('2d');
+            const runtimeChart = new Chart(runtimeCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['P-RAG', 'Combine Both', '标准RAG', 'FLARE', 'DRAGIN'],
+                    datasets: [{
+                        label: '推理时间(秒)',
+                        data: [2.34, 3.08, 3.03, 10.14, 14.60],
+                        backgroundColor: [
+                            'rgba(14, 165, 233, 0.7)',
+                            'rgba(139, 92, 246, 0.7)',
+                            'rgba(75, 85, 99, 0.7)',
+                            'rgba(239, 68, 68, 0.7)',
+                            'rgba(239, 68, 68, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(14, 165, 233, 1)',
+                            'rgba(139, 92, 246, 1)',
+                            'rgba(75, 85, 99, 1)',
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(239, 68, 68, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#6b7280'
+                            },
+                            grid: {
+                                color: 'rgba(229, 231, 235, 0.5)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#6b7280'
+                            },
+                            grid: {
+                                color: 'rgba(229, 231, 235, 0.5)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#6b7280'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Update charts when theme changes
+            themeToggle.addEventListener('click', () => {
+                loraChart.update();
+                runtimeChart.update();
+            });
+        });
+    </script>
+</body>
+</html>
